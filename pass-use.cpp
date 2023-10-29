@@ -22,16 +22,17 @@ namespace {
 
     struct UsesPass : public llvm::PassInfoMixin<UsesPass> {
 
-        llvm::PreservedAnalyses run(llvm::Module &M, llvm::ModuleAnalysisManager &AM) {
+        [[maybe_unused]] llvm::PreservedAnalyses run(llvm::Module &M, llvm::ModuleAnalysisManager &AM) {
             auto &context = M.getContext();
             IRBuilder<> builder{context};
 
-            auto *func_type = FunctionType::get(Type::getVoidTy(context), {builder.getInt8Ty()->getPointerTo()}, false);
+            auto *s1_type = FunctionType::get(Type::getVoidTy(context), {builder.getInt8Ty()->getPointerTo()}, false);
+            auto *s2_type = FunctionType::get(Type::getVoidTy(context), {builder.getInt8Ty()->getPointerTo(), builder.getInt8Ty()->getPointerTo()}, false);
 
             const auto functions = Functions {
-                    M.getOrInsertFunction(START_LOGGER, func_type),
-                    M.getOrInsertFunction(OPT_LOGGER, func_type),
-                    M.getOrInsertFunction(END_LOGGER, func_type)
+                    M.getOrInsertFunction(START_LOGGER, s1_type),
+                    M.getOrInsertFunction(OPT_LOGGER, s2_type),
+                    M.getOrInsertFunction(END_LOGGER, s1_type)
             };
 
 
@@ -43,11 +44,11 @@ namespace {
             return llvm::PreservedAnalyses::all();
         }
 
-        bool is_logger(StringRef name) {
+        static bool is_logger(StringRef name) {
             return name == OPT_LOGGER || name == END_LOGGER || name == START_LOGGER;
         }
 
-        void run_on_function(llvm::Function &F, const Functions &functions) {
+        static void run_on_function(llvm::Function &F, const Functions &functions) {
             if (F.isIntrinsic()) return;
             if (F.isDeclaration()) return;
             if (is_logger(F.getName())) {
@@ -63,6 +64,34 @@ namespace {
             auto *name_str = builder.CreateGlobalStringPtr(F.getName());
             Value *args[] = {name_str};
             builder.CreateCall(functions.start, args);
+
+            for (auto &block: F) {
+                for (auto &insn: block) {
+                    std::string s;
+                    raw_string_ostream ss{s};
+
+                    insn.print(ss, true);
+
+                    for (auto &use: insn.uses()) {
+                        auto *user = dyn_cast<Instruction>(use.getUser());
+
+                        builder.SetInsertPoint(&insn);
+                        auto *opt_str = builder.CreateGlobalStringPtr(insn.getOpcodeName());
+                        auto *user_str = builder.CreateGlobalStringPtr(user->getOpcodeName());
+                        Value *args[] = {opt_str, user_str};
+                        builder.CreateCall(functions.opt, args);
+                    }
+                    if (auto *ret = dyn_cast<ReturnInst>(&insn)) {
+                        // Insert before ret
+                        builder.SetInsertPoint(ret);
+
+                        // Insert a call to funcEndLogFunc function
+                        Value *funcName = builder.CreateGlobalStringPtr(F.getName());
+                        Value *args[] = {funcName};
+                        builder.CreateCall(functions.end, args);
+                    }
+                }
+            }
 
         }
     };
