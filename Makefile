@@ -9,7 +9,7 @@ clean:
 	mkdir $(BIN_PATH)
 
 game.ll: game.c
-	clang -S -emit-llvm game.c -o game.ll
+	clang -S -emit-llvm game.c -O2 -o game.ll
 
 $(OBJ_PATH)/sim.o : sim.c
 	clang -g -c sim.c -o $(OBJ_PATH)/sim.o
