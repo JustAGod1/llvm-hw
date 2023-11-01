@@ -20,7 +20,12 @@ void calcGen(unsigned *nextGen, unsigned *prevGen)
             int cnt = 0;
             for (int dx = 0; dx < 3; ++dx) {
                 for (int dy = 0; dy < 3; ++dy) {
-                    if (prevGen[x - dx + 1 + SIM_X_SIZE * (y - dy + 1)]) {
+                    int real_x = x - dx + 1;
+                    int real_y = y - dy + 1;
+                    if (real_x >= SIM_X_SIZE || real_x < 0) continue;
+                    if (real_y >= SIM_Y_SIZE || real_y < 0) continue;
+
+                    if (prevGen[real_x + SIM_X_SIZE * real_y]) {
                         cnt++;
                     }
                 }
