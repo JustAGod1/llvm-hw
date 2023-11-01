@@ -1,24 +1,21 @@
 OBJ_PATH := obj
 BIN_PATH := $(OBJ_PATH)/bin
 
-all: $(OBJ_PATH)/pass-use.so
+all: obj/bin/game
 
 clean:
 	rm -rf $(OBJ_PATH)
 	mkdir $(OBJ_PATH)
 	mkdir $(BIN_PATH)
 
-$(OBJ_PATH)/engine.o : engine.c
-	clang -g -c engine.c -o $(OBJ_PATH)/engine.o
-
-$(OBJ_PATH)/main.o : main.c
-	clang -g -c main.c -o $(OBJ_PATH)/main.o
+$(OBJ_PATH)/sim.o : sim.c
+	clang -g -c sim.c -o $(OBJ_PATH)/sim.o
 
 $(OBJ_PATH)/inject.o : inject.cpp
 	clang++ -g -c inject.cpp -o $(OBJ_PATH)/inject.o
 
-$(BIN_PATH)/game: $(OBJ_PATH)/game.o $(OBJ_PATH)/main.o $(OBJ_PATH)/engine.o game.h engine.h $(OBJ_PATH)/pass-use.so $(OBJ_PATH)/inject.o
-	clang++ $(OBJ_PATH)/game.o $(OBJ_PATH)/main.o $(OBJ_PATH)/engine.o $(OBJ_PATH)/inject.o -o $(BIN_PATH)/game -lSDL2
+$(BIN_PATH)/game: $(OBJ_PATH)/game.o $(OBJ_PATH)/sim.o game.h sim.h $(OBJ_PATH)/pass-use.so $(OBJ_PATH)/inject.o
+	clang++ $(OBJ_PATH)/game.o $(OBJ_PATH)/sim.o $(OBJ_PATH)/inject.o -o $(BIN_PATH)/game -lSDL2
 
 $(OBJ_PATH)/game_raw.bc: game.c
 	clang -c -emit-llvm -O2 game.c -o $(OBJ_PATH)/game_raw.bc

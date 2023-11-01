@@ -98,7 +98,7 @@ namespace {
 
     llvm::PassPluginLibraryInfo getPassPluginInfo() {
         const auto callback = [](llvm::PassBuilder &PB) {
-            PB.registerPipelineEarlySimplificationEPCallback(
+            PB.registerOptimizerLastEPCallback(
                     [&](llvm::ModulePassManager &MPM, auto) {
                         MPM.addPass(UsesPass{});
                         return true;
